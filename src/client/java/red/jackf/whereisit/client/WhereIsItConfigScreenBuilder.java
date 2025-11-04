@@ -8,7 +8,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.ResourceLocation;
 import red.jackf.jackfredlib.api.colour.Colour;
 import red.jackf.jackfredlib.api.colour.Colours;
@@ -222,18 +222,17 @@ public class WhereIsItConfigScreenBuilder {
                 float ratio = (float) renderWidth / imageWidth;
                 int height = (int) (imageHeight * ratio);
 
-                graphics.pose().pushPose();
-                graphics.pose().translate(x, y, 0);
-                graphics.pose().scale(ratio, ratio, 1);
-                graphics.blit(RenderType::guiTextured,
-                        WhereIsIt.id("textures/gui/config/show_container_names_example.png"),
+                graphics.pose().pushMatrix();
+                graphics.pose().translate((float)x, (float)y);
+                graphics.pose().scale(ratio, ratio);
+                graphics.blit(WhereIsIt.id("textures/gui/config/show_container_names_example.png"),
                         0, 0, 0, 0,
                         imageWidth, imageHeight, imageWidth, imageHeight);
 
                 float f = scaleGetter.get();
 
                 if (f == 0f) {
-                    graphics.pose().popPose();
+                    graphics.pose().popMatrix();
                     return height;
                 }
 
@@ -242,12 +241,12 @@ public class WhereIsItConfigScreenBuilder {
                 var bgColour = ((int) (Minecraft.getInstance().options.getBackgroundOpacity(0.25F) * 255F)) << 24;
                 graphics.fill(labelMidX - halfWidth, labelMidY - halfHeight, labelMidX + halfWidth, labelMidY + halfHeight, bgColour);
 
-                graphics.pose().translate(labelMidX, labelMidY, 0);
-                graphics.pose().scale(f * 5, f * 5, f * 5);
+                graphics.pose().translate((float)labelMidX, (float)labelMidY);
+                graphics.pose().scale(f * 5, f * 5);
                 var font = Minecraft.getInstance().font;
                 var textWidth = font.width("Tools");
                 graphics.drawString(font, "Tools", -textWidth / 2, -font.lineHeight / 2, 0xFF_FFFFFF, false);
-                graphics.pose().popPose();
+                graphics.pose().popMatrix();
 
                 return height;
             }
@@ -448,9 +447,9 @@ public class WhereIsItConfigScreenBuilder {
                 int width = renderWidth - 2 * borderThickness;
                 int height = renderHeight - 2 * borderThickness;
 
-                graphics.pose().pushPose();
-                graphics.pose().translate(x, y, 0);
-                graphics.blitSprite(RenderType::guiTextured, COLOUR_PREVIEW_BORDER, 0, 0, renderWidth, renderHeight);
+                graphics.pose().pushMatrix();
+                graphics.pose().translate((float)x, (float)y);
+                graphics.blitSprite(RenderPipelines.GUI, COLOUR_PREVIEW_BORDER, 0, 0, renderWidth, renderHeight);
                 Gradient previewScheme;
                 Colour solid = Colour.fromInt(solidColour.getRGB());
                 if (scheme == ColourScheme.SOLID) {
@@ -461,7 +460,7 @@ public class WhereIsItConfigScreenBuilder {
                     previewScheme = scheme.getGradient();
                 }
                 GradientUtils.drawHorizontalGradient(graphics, borderThickness, borderThickness, width, height, previewScheme, 0, 1);
-                graphics.pose().popPose();
+                graphics.pose().popMatrix();
 
                 return renderHeight;
             }

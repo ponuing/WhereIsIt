@@ -56,11 +56,7 @@ public class WhereIsItClient implements ClientModInitializer {
         CurrentGradientHolder.refreshColourScheme();
 
         ScreenEvents.BEFORE_INIT.register((client, _screen, scaledWidth, scaledHeight) -> {
-			if (inGame) {
-                if (WhereIsItConfig.INSTANCE.instance().getClient().showSlotHighlights) {
-                    ScreenEvents.afterRender(_screen).register(Rendering::renderSlotHighlight);
-                }
-
+            if (inGame) {
                 // listen for keypress in-GUI
                 ScreenKeyboardEvents.afterKeyPress(_screen).register((screen, key, scancode, modifiers) -> {
                     if (SEARCH.matches(key, scancode) && !ShouldIgnoreKey.EVENT.invoker().shouldIgnoreKey()) {

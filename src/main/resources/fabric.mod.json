@@ -1,53 +1,59 @@
 {
-	"schemaVersion": 1,
-	"id": "whereisit",
-	"version": "${version}",
-	"name": "Where Is It",
-	"description": "Find items in nearby inventories.",
-	"authors": [
-		"JackFred"
-	],
-	"contact": {
-		"homepage": "https://modrinth.com/mod/where-is-it",
-		"sources": "https://github.com/JackFred2/WhereIsIt",
-		"issues": "https://github.com/JackFred2/WhereIsIt/issues"
-	},
-	"license": "LGPL-3.0-only",
-	"icon": "assets/whereisit/icon.png",
-	"environment": "*",
-	"entrypoints": {
-		"main": [
-			"red.jackf.whereisit.WhereIsIt"
-		],
-		"whereisit": [
-			"red.jackf.whereisit.defaults.WhereIsItDefaultPlugin"
-		],
-		"client": [
-			"red.jackf.whereisit.client.WhereIsItClient"
-		],
-		"whereisit_client": [
-			"red.jackf.whereisit.client.defaults.WhereIsItDefaultClientPlugin"
-		],
-		"modmenu": [
-			"red.jackf.whereisit.client.compat.WhereIsItModMenu"
-		],
-		"jei_mod_plugin": [
-			"red.jackf.whereisit.client.compat.recipeviewers.WhereIsItJEIPlugin"
-		],
-		"rei_client": [
-			"red.jackf.whereisit.client.compat.recipeviewers.WhereIsItREIPlugin"
-		],
-		"emi": [
-			"red.jackf.whereisit.client.compat.recipeviewers.WhereIsItEMIPlugin"
-		]
-	},
-	"mixins": [],
+    "schemaVersion": 1,
+    "id": "whereisit",
+    "version": "${version}",
+    "name": "Where Is It (Unofficial port)",
+    "description": "Find items in nearby inventories. Unofficial port Where Is It.",
+    "authors": [
+      "JackFred",
+      "ponuing"
+    ],
+    "contact": {
+      "homepage": "https://modrinth.com/mod/where-is-it-port",
+      "sources": "https://github.com/ponuing/WhereIsIt",
+      "issues": "https://github.com/ponuing/WhereIsIt/issues"
+    },
+    "license": "LGPL-3.0-only",
+    "mixins": [
+      {
+        "config": "whereisit.mixins.json",
+        "environment": "client"
+      }
+    ],
+    "icon": "assets/whereisit/icon.png",
+    "environment": "*",
+    "entrypoints": {
+      "main": [
+        "red.jackf.whereisit.WhereIsIt"
+      ],
+      "whereisit": [
+        "red.jackf.whereisit.defaults.WhereIsItDefaultPlugin"
+      ],
+      "client": [
+        "red.jackf.whereisit.client.WhereIsItClient"
+      ],
+      "whereisit_client": [
+        "red.jackf.whereisit.client.defaults.WhereIsItDefaultClientPlugin"
+      ],
+      "modmenu": [
+        "red.jackf.whereisit.client.compat.WhereIsItModMenu"
+      ],
+      "jei_mod_plugin": [
+        "red.jackf.whereisit.client.compat.recipeviewers.WhereIsItJEIPlugin"
+      ],
+      "rei_client": [
+        "red.jackf.whereisit.client.compat.recipeviewers.WhereIsItREIPlugin"
+      ],
+      "emi": [
+        "red.jackf.whereisit.client.compat.recipeviewers.WhereIsItEMIPlugin"
+      ]
+    },
 	"accessWidener": "whereisit.accesswidener",
 	"depends": {
-		"fabricloader": ">=0.15.0",
-		"minecraft": ">=1.21",
+		"fabricloader": ">=0.16.0",
+		"minecraft": ">=1.21.6",
 		"fabric-api": "*",
-		"yet_another_config_lib_v3": ">=3.5.0"
+		"yet_another_config_lib_v3": ">=3.7.1"
 	},
 	"suggests": {
 		"emi": "*",
