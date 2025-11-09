@@ -82,7 +82,7 @@ public class Rendering {
     // ----------------------------
     // SLOT HIGHLIGHTING (in AbstractContainerScreenMixin Mixin)
     // ----------------------------
-    public static void renderSlotHighlight(AbstractContainerScreen<?> screen, GuiGraphics graphics, int mouseX, int mouseY, float tickDelta) {
+    public static void renderSlotHighlight(AbstractContainerScreen<?> screen, GuiGraphics graphics, float tickDelta) {
         if (!shouldBeRendering() || lastRequest == null) return;
 
         float time = getBaseProgress(ticksSinceSearch, tickDelta);
@@ -109,28 +109,46 @@ public class Rendering {
         scheduledLabels.add(new ScheduledLabel(pos, name, seeThrough));
     }
 
-    public static void renderLabels(PoseStack poseStack, Camera camera, MultiBufferSource consumers) {
+    public static void renderLabels(PoseStack ignoredPoseStack, Camera camera, MultiBufferSource consumers) {
+        if (scheduledLabels.isEmpty()) return;
+
+        Vec3 camPos = camera.getPosition();
+
+        // Create a PoseStack WITH CAMERA ROTATIONS
+        PoseStack pose = new PoseStack();
+        pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(camera.getXRot()));
+        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(camera.getYRot() + 180f));
+
         scheduledLabels.stream()
-                .sorted(Comparator.comparingDouble(label -> -camera.getPosition().distanceToSqr(label.position)))
-                .forEach(label -> renderLabel(label, poseStack, camera, consumers));
+                .sorted(Comparator.comparingDouble(label -> -camPos.distanceToSqr(label.position)))
+                .forEach(label -> renderLabel(label, pose, camera, camPos, consumers));
+
         scheduledLabels.clear();
     }
 
-    private static void renderLabel(ScheduledLabel label, PoseStack pose, Camera camera, MultiBufferSource consumers) {
+    private static void renderLabel(ScheduledLabel label, PoseStack pose, Camera camera, Vec3 camPos, MultiBufferSource consumers) {
         pose.pushPose();
-        Vec3 pos = label.position.subtract(camera.getPosition());
-        pose.translate(pos.x, pos.y, pos.z);
-        pose.mulPose(camera.rotation());
-        float factor = 0.025f * WhereIsItConfig.INSTANCE.instance().getClient().containerNameLabelScale;
-        pose.scale(factor, -factor, factor);
+
+        // Offset from the camera
+        final double xOffset = label.position.x - camPos.x;
+        final double yOffset = label.position.y - camPos.y;
+        final double zOffset = label.position.z - camPos.z;
+        pose.translate(xOffset, yOffset, zOffset);
+
+        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-camera.getYRot()));
+        pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(camera.getXRot()));
+
+        // Scale
+        float scale = 0.025f * WhereIsItConfig.INSTANCE.instance().getClient().containerNameLabelScale;
+        pose.scale(-scale, -scale, scale);
 
         Matrix4f matrix = pose.last().pose();
         int width = Minecraft.getInstance().font.width(label.text);
         float x = -width / 2f;
 
+        // Background
         VertexConsumer bgBuffer = consumers.getBuffer(RenderType.textBackgroundSeeThrough());
         int bgColour = ((int) (Minecraft.getInstance().options.getBackgroundOpacity(0.25F) * 255F)) << 24;
-
         bgBuffer.addVertex(matrix, x - 1, -1f, 0).setColor(bgColour).setLight(LightTexture.FULL_BRIGHT);
         bgBuffer.addVertex(matrix, x - 1, 10f, 0).setColor(bgColour).setLight(LightTexture.FULL_BRIGHT);
         bgBuffer.addVertex(matrix, x + width, 10f, 0).setColor(bgColour).setLight(LightTexture.FULL_BRIGHT);
@@ -140,44 +158,50 @@ public class Rendering {
         GL11.glDepthFunc(GL11.GL_ALWAYS);
 
         Font.DisplayMode mode = label.seeThrough ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL;
-        Minecraft.getInstance().font.drawInBatch(
-                label.text, x, 0, 0xFFFFFFFF, false, matrix, consumers, mode, 0, LightTexture.FULL_BRIGHT
-        );
+        Minecraft.getInstance().font.drawInBatch(label.text, x, 0, 0xFFFFFFFF, false, matrix, consumers, mode, 0, LightTexture.FULL_BRIGHT);
 
         GL11.glDepthFunc(GL11.GL_LEQUAL);
         GL11.glEnable(GL11.GL_DEPTH_TEST);
+
         pose.popPose();
     }
 
     // ----------------------------
     // BLOCK BOX RENDERING (FILLED CUBES)
     // ----------------------------
-    public static void renderBoxes(PoseStack poseStack, MultiBufferSource.BufferSource bufferSource, Camera camera, float tickDelta) {
+    public static void renderBoxes(MultiBufferSource.BufferSource bufferSource, Camera camera, float tickDelta) {
         if (results.isEmpty()) return;
 
         Vec3 camPos = camera.getPosition();
 
+        // Create a new PoseStack and apply camera rotation
         PoseStack pose = new PoseStack();
         pose.mulPose(com.mojang.math.Axis.XP.rotationDegrees(camera.getXRot()));
         pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(camera.getYRot() - 180f));
 
         VertexConsumer consumer = bufferSource.getBuffer(RenderType.debugQuads());
 
+        // Get progress for RGB animation
         float progress = getRenderingProgress(tickDelta);
 
+        // Get RGB color from gradient
         int rgbColor = CurrentGradientHolder.getColour(getBaseProgress(ticksSinceSearch, tickDelta));
         float r = ARGB.red(rgbColor) / 255f;
         float g = ARGB.green(rgbColor) / 255f;
         float b = ARGB.blue(rgbColor) / 255f;
 
+        // Alpha with fadeout
         float baseAlpha = 0.4f;
         float alpha = baseAlpha - (progress * baseAlpha / 2f);
 
+        // Scale for animation
         float scale = easingFunc(progress);
 
         for (SearchResult result : getResults().values()) {
+            // Render the main box with RGB color.
             renderBox(camPos, result.pos(), consumer, pose, r, g, b, alpha, scale);
 
+            // Rendering additional positions (for double chests)
             for (BlockPos otherPos : result.otherPositions()) {
                 renderBox(camPos, otherPos, consumer, pose, r, g, b, alpha, scale);
             }
@@ -186,32 +210,40 @@ public class Rendering {
         bufferSource.endBatch(RenderType.debugQuads());
     }
 
+    // Rendering progress for fadeout
     private static float getRenderingProgress(float tickDelta) {
         return Math.min((getTicksSinceSearch() + tickDelta) / WhereIsItConfig.INSTANCE.instance().getCommon().fadeoutTimeTicks, 1f);
     }
 
+    // Basic progress for RGB animation (as in the old code)
     private static float getBaseProgress(long ticks, float delta) {
         float base = ticks + delta;
         base *= WhereIsItConfig.INSTANCE.instance().getClient().highlightTimeFactor;
         return (base % 80) / 80;
     }
 
+    // Smoothing function for scale animation (as in the old code)
     private static float easingFunc(float progress) {
         var power = 32f;
         return (float) ((1 - Math.pow(progress, power)) * (1 - Math.pow(1 - progress, power)) * (1 - (progress / 4f)));
     }
 
+    // Updated renderBox method with scale support
     private static void renderBox(Vec3 cameraPos, BlockPos pos, VertexConsumer consumer,
                                   PoseStack pose, float r, float g, float b, float a, float scale) {
         pose.pushPose();
+
+        // Offset from the camera for the correct position
         final double xOffset = pos.getX() + (0.5 - cameraPos.x);
         final double yOffset = pos.getY() + (0.5 - cameraPos.y);
         final double zOffset = pos.getZ() + (0.5 - cameraPos.z);
         pose.translate(xOffset, yOffset, zOffset);
+
+        // Scaling a cube with animation
         pose.scale(scale * 0.5f, scale * 0.5f, scale * 0.5f);
+
         Matrix4f matrix = pose.last().pose();
         int color = ARGB.color((int)(a * 255), (int)(r * 255), (int)(g * 255), (int)(b * 255));
-
 
         // -Z
         consumer.addVertex(matrix, -1, -1, -1).setColor(color);

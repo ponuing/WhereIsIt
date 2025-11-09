@@ -15,7 +15,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import red.jackf.whereisit.client.render.Rendering;
-import net.minecraft.client.Minecraft;
 
 @Mixin(LevelRenderer.class)
 public abstract class LevelRendererMixin {
@@ -43,13 +42,21 @@ public abstract class LevelRendererMixin {
         GL11.glDisable(GL11.GL_DEPTH_TEST);
         GL11.glDepthFunc(GL11.GL_ALWAYS);
 
+        // Creating empty PoseStack
         PoseStack poseStack = new PoseStack();
+
         MultiBufferSource.BufferSource bufferSource =
-                Minecraft.getInstance()
+                net.minecraft.client.Minecraft.getInstance()
                         .renderBuffers()
                         .bufferSource();
 
-        Rendering.renderBoxes(poseStack, bufferSource, camera, tickDelta);
+        // Rendering boxes
+        Rendering.renderBoxes(bufferSource, camera, tickDelta);
+
+        // Rendering labels
+        Rendering.renderLabels(poseStack, camera, bufferSource);
+
+        bufferSource.endBatch();
 
         GL11.glDepthFunc(GL11.GL_LEQUAL);
         GL11.glEnable(GL11.GL_DEPTH_TEST);
