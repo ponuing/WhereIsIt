@@ -1,5 +1,5 @@
 name: Publish
-run-name: Publish Chest Tracker
+run-name: Publish Where Is It
 
 on:
   workflow_dispatch:
