@@ -5,7 +5,8 @@
   "refmap": "whereisit.refmap.json",
   "client": [
     "LevelRendererMixin",
-    "AbstractContainerScreenMixin"
+    "AbstractContainerScreenMixin",
+    "WhereIsItRenderPipelinesMixin"
   ],
   "injectors": {
     "defaultRequire": 1

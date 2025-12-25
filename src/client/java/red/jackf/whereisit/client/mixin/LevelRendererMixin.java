@@ -40,8 +40,8 @@ public abstract class LevelRendererMixin {
 
         float tickDelta = deltaTracker.getGameTimeDeltaPartialTick(true);
 
-        GL11.glDisable(GL11.GL_DEPTH_TEST);
-        GL11.glDepthFunc(GL11.GL_ALWAYS);
+        //GL11.glDisable(GL11.GL_DEPTH_TEST);
+        //GL11.glDepthFunc(GL11.GL_ALWAYS);
 
         // Creating empty PoseStack
         PoseStack poseStack = new PoseStack();
@@ -59,7 +59,7 @@ public abstract class LevelRendererMixin {
 
         bufferSource.endBatch();
 
-        GL11.glDepthFunc(GL11.GL_LEQUAL);
-        GL11.glEnable(GL11.GL_DEPTH_TEST);
+        //GL11.glDepthFunc(GL11.GL_LEQUAL);
+        //GL11.glEnable(GL11.GL_DEPTH_TEST);
     }
 }
