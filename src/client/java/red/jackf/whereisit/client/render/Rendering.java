@@ -158,7 +158,7 @@ public class Rendering {
         //GL11.glDisable(GL11.GL_DEPTH_TEST);
         //GL11.glDepthFunc(GL11.GL_ALWAYS);
 
-        Font.DisplayMode mode = label.seeThrough ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL;
+        Font.DisplayMode mode = Font.DisplayMode.SEE_THROUGH;
         Minecraft.getInstance().font.drawInBatch(label.text, x, 0, 0xFFFFFFFF, false, matrix, consumers, mode, 0, LightTexture.FULL_BRIGHT);
 
         //GL11.glDepthFunc(GL11.GL_LEQUAL);
