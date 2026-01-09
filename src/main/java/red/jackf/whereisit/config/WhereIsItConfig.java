@@ -71,6 +71,12 @@ public class WhereIsItConfig {
         @SerialEntry(comment = "How much a slot's X position influences the colour of a slot highlight. Range: [0, 4]")
         public float slotHighlightXFactor = 1f;
 
+        @SerialEntry(comment = "Whether to render slot highlights above items (with transparency) or below items (opaque).")
+        public boolean renderHighlightAboveItems = false;
+
+        @SerialEntry(comment = "Opacity of the highlight when rendering above items. Range: [0, 255], where 0 is fully transparent and 255 is fully opaque.")
+        public int highlightOpacity = 102;
+
         @SerialEntry(comment = "Modifier for how fast Where Is It will cycle through the current colour scheme's gradient. Range: [0.1, 4]")
         public float highlightTimeFactor = 1f;
 

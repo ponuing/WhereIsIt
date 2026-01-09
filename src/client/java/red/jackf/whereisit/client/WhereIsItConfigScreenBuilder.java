@@ -3,12 +3,9 @@ package red.jackf.whereisit.client;
 import dev.isxander.yacl3.api.*;
 import dev.isxander.yacl3.api.controller.*;
 import dev.isxander.yacl3.gui.image.ImageRenderer;
-import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import red.jackf.jackfredlib.api.colour.Colour;
 import red.jackf.jackfredlib.api.colour.Colours;
@@ -24,10 +21,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import static net.minecraft.SharedConstants.TICKS_PER_SECOND;
 import static net.minecraft.network.chat.Component.translatable;
 
 public class WhereIsItConfigScreenBuilder {
@@ -82,7 +77,38 @@ public class WhereIsItConfigScreenBuilder {
                         .build())
                 .options(makeLabelOptions(defaults, config))
                 .options(makeColourOptions(defaults, config))
+                .options(makeHighlightRenderOptions(defaults, config))
                 .build();
+    }
+    private static Collection<? extends Option<?>> makeHighlightRenderOptions(WhereIsItConfig defaults, WhereIsItConfig config) {
+        var opacityOption = Option.<Integer>createBuilder()
+                .name(translatable("whereisit.config.client.highlightOpacity"))
+                .description(OptionDescription.of(translatable("whereisit.config.client.highlightOpacity.description")))
+                .binding(
+                        defaults.getClient().highlightOpacity,
+                        () -> config.getClient().highlightOpacity,
+                        i -> config.getClient().highlightOpacity = i
+                )
+                .controller(opt -> IntegerSliderControllerBuilder.create(opt)
+                        .formatValue(i -> translatable("mco.download.percent", (int) ((i / 255f) * 100)))
+                        .range(0, 255)
+                        .step(1))
+                .build();
+
+        var renderAboveOption = Option.<Boolean>createBuilder()
+                .name(translatable("whereisit.config.client.renderHighlightAboveItems"))
+                .description(OptionDescription.of(translatable("whereisit.config.client.renderHighlightAboveItems.description")))
+                .binding(
+                        defaults.getClient().renderHighlightAboveItems,
+                        () -> config.getClient().renderHighlightAboveItems,
+                        b -> config.getClient().renderHighlightAboveItems = b
+                )
+                .controller(opt -> BooleanControllerBuilder.create(opt)
+                        .coloured(true)
+                        .yesNoFormatter())
+                .build();
+
+        return List.of(renderAboveOption, opacityOption);
     }
 
     private static Collection<? extends Option<?>> makeLabelOptions(WhereIsItConfig defaults, WhereIsItConfig config) {
