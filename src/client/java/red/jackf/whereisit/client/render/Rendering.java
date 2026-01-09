@@ -83,7 +83,7 @@ public class Rendering {
     // ----------------------------
     // SLOT HIGHLIGHTING (in AbstractContainerScreenMixin Mixin)
     // ----------------------------
-    public static void renderSlotHighlight(AbstractContainerScreen<?> screen, GuiGraphics graphics, float tickDelta) {
+    public static void renderSlotHighlight(AbstractContainerScreen<?> screen, GuiGraphics graphics, float tickDelta, boolean applyTransparency) {
         if (!shouldBeRendering() || lastRequest == null) return;
 
         float time = getBaseProgress(ticksSinceSearch, tickDelta);
@@ -98,7 +98,15 @@ public class Rendering {
             float progress = time;
             progress += (slot.x / 256f) * WhereIsItConfig.INSTANCE.instance().getClient().slotHighlightXFactor;
             int colour = CurrentGradientHolder.getColour(progress);
-            graphics.fill(x, y, x + 16, y + 16, colour);
+            if (applyTransparency) {
+                // Applying transparency to render items
+                int alpha = WhereIsItConfig.INSTANCE.instance().getClient().highlightOpacity & 0xFF;
+                int transparentColour = (colour & 0x00FFFFFF) | (alpha << 24);
+                graphics.fill(x, y, x + 16, y + 16, transparentColour);
+            } else {
+                // Full opacity for rendering under items
+                graphics.fill(x, y, x+16, y+16, colour);
+            }
         }
     }
 
