@@ -207,7 +207,19 @@ public class WhereIsItConfigScreenBuilder {
                         .coloured(true)
                         .yesNoFormatter())
                 .build();
-        return List.of(showNameToggle, nameSizeOption);
+        var yPositionOption = Option.<Float>createBuilder()
+                .name(translatable("whereisit.config.client.yPositionText"))
+                .description(OptionDescription.of(translatable("whereisit.config.client.yPositionText.description")))
+                .binding(
+                        defaults.getClient().Ypositiontext,
+                        () -> config.getClient().Ypositiontext,
+                        f -> config.getClient().Ypositiontext = f
+                )
+                .controller(opt -> FloatSliderControllerBuilder.create(opt)
+                        .range(-1f, 1f)
+                        .step(0.01f))
+                .build();
+        return List.of(showNameToggle, nameSizeOption, yPositionOption);
     }
 
     private static Optional<ImageRenderer> getLabelImage(Supplier<Float> scaleGetter) {

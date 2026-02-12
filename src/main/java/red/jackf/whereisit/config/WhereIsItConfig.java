@@ -86,6 +86,9 @@ public class WhereIsItConfig {
         @SerialEntry(comment = "Visual scale of the container names in the range [0.25, 2].")
         public float containerNameLabelScale = 1f;
 
+        @SerialEntry(comment = "Text position Y above container")
+        public float Ypositiontext = 0f;
+
         @SerialEntry(comment = "Whether to use a random pride colour scheme each search.")
         public boolean randomScheme = true;
 

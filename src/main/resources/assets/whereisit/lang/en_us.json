@@ -23,6 +23,8 @@
   "whereisit.config.client.highlightTimeFactor": "Highlight Time Factor",
   "whereisit.config.client.highlightTimeFactor.description": "Modifier for how fast Where Is It will cycle through the current colour scheme's gradient.",
   "whereisit.config.client.showContainerNamesInResults": "Show Container Names for Results",
+  "whereisit.config.client.yPositionText": "Text position Y above container",
+  "whereisit.config.client.yPositionText.description": "Changes the Y position of the text above the container for a more convenient view for you",
   "whereisit.config.client.containerNameLabelScale": "Container Name Text Scale",
   "whereisit.config.client.containerNameLabelScale.slider": "Container Name Text Scale",
   "whereisit.config.client.randomScheme": "Random Colour Scheme",
