@@ -21,7 +21,7 @@ public class AbstractContainerScreenMixinFront {
     )
     private void afterRenderSlotHighlightFront(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
         if (WhereIsItConfig.INSTANCE.instance().getClient().renderHighlightAboveItems) {
-            Rendering.renderSlotHighlight((AbstractContainerScreen<?>) (Object) this, guiGraphics, partialTick, true);
+            Rendering.renderSlotHighlight((AbstractContainerScreen<?>) (Object) this, guiGraphics, partialTick, true, mouseX, mouseY);
         }
     }
 }
