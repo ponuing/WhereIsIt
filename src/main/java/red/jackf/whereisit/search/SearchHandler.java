@@ -14,8 +14,10 @@ import red.jackf.whereisit.api.SearchRequest;
 import red.jackf.whereisit.api.SearchResult;
 import red.jackf.whereisit.api.search.BlockSearcher;
 import red.jackf.whereisit.api.search.ConnectedBlocksGrabber;
+import red.jackf.whereisit.api.search.EntitySearcher;
 import red.jackf.whereisit.config.WhereIsItConfig;
 import red.jackf.whereisit.networking.ClientboundResultsPacket;
+import red.jackf.whereisit.networking.ClientCapabilities;
 import red.jackf.whereisit.networking.ServerboundSearchForItemPacket;
 import red.jackf.whereisit.serverside.ServerSideRenderer;
 import red.jackf.whereisit.util.RateLimiter;
@@ -25,10 +27,14 @@ import java.util.HashMap;
 public class SearchHandler {
 
     public static void handleFromPacket(ServerboundSearchForItemPacket packet, ServerPlayer player, PacketSender ignored) {
-        handle(packet.id(), packet.request(), player);
+        handle(packet.id(), packet.request(), player, ClientCapabilities.supportsEntityIds(player));
     }
 
     public static void handle(long requestId, SearchRequest request, ServerPlayer player) {
+        handle(requestId, request, player, true);
+    }
+
+    public static void handle(long requestId, SearchRequest request, ServerPlayer player, boolean clientSupportsEntities) {
         // clear last server side results
         ServerSideRenderer.fadeServerSide(player);
 
@@ -84,6 +90,23 @@ public class SearchHandler {
                 }
             }
         }
+        // Entity search (only if the client can render them)
+        if (clientSupportsEntities) {
+            var aabb = player.getBoundingBox().inflate(range);
+            var entities = level.getEntities(player, aabb, e -> true);
+
+            for (var entity : entities) {
+                if (entity == player) continue;
+                if (entity.position().distanceToSqr(player.position()) > maxRange) continue;
+                var result = EntitySearcher.EVENT.invoker().search(request, player, entity);
+
+                if (result.hasValue()) {
+                    SearchResult searchResult = result.get();
+                    if (searchResult.entityId() == null) searchResult = searchResult.withEntityId(entity.getId());
+                    results.put(entity.blockPosition(), searchResult);
+                }
+            }
+        }
 
         WhereIsIt.LOGGER.debug("Server search results for {}: {}", player.getScoreboardName(), results);
 
@@ -99,7 +122,7 @@ public class SearchHandler {
                 ServerSideRenderer.doServersideRendering(player, results.values());
             } else {
                 // send packet
-                ServerPlayNetworking.send(player, new ClientboundResultsPacket(requestId, results.values(), request));
+                ServerPlayNetworking.send(player, ClientboundResultsPacket.forClient(requestId, results.values(), request, clientSupportsEntities));
             }
         }
     }

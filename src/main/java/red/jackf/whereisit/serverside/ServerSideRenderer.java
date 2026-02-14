@@ -79,6 +79,8 @@ public class ServerSideRenderer {
         var level = (ServerLevel) player.level();
 
         for (SearchResult result : results) {
+            if (result.isEntityResult()) continue;
+
             Colour colour = Colour.fromHSV((float) Math.random(), 1, 1);
 
             int timeoutTicks = randomFadeTime();

@@ -9,5 +9,6 @@ public class WhereIsItDefaultPlugin implements WhereIsItPlugin {
         DefaultBlockSearchers.setup();
         DefaultConnectedBlocksGrabbers.setup();
         DefaultNestedItemsGrabbers.setup();
+        DefaultEntitySearchers.setup();
     }
 }

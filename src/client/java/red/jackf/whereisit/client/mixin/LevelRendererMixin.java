@@ -51,6 +51,7 @@ public abstract class LevelRendererMixin {
 
         // Rendering boxes
         Rendering.renderBoxes(bufferSource, camera, tickDelta);
+        Rendering.renderEntityHighlights(bufferSource, camera, tickDelta);
 
         // Rendering labels
         Rendering.renderLabels(poseStack, camera, bufferSource);
