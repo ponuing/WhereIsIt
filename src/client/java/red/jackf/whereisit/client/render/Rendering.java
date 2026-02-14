@@ -85,6 +85,7 @@ public class Rendering {
     public static void incrementTicksSinceSearch() { ticksSinceSearch++; }
     public static void resetSearchTime() { ticksSinceSearch = 0; }
     public static Map<BlockPos, SearchResult> getResults() { return results; }
+    public static Map<Integer, SearchResult> getEntityResults() { return entityResults; }
     public static Map<BlockPos, SearchResult> getNamedResults() { return namedResults; }
 
     // ----------------------------
