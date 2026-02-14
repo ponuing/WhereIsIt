@@ -14,7 +14,9 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.ARGB;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
@@ -31,6 +33,7 @@ public class Rendering {
 
     private static final Map<BlockPos, SearchResult> results = new HashMap<>();
     private static final Map<BlockPos, SearchResult> namedResults = new HashMap<>();
+    private static final Map<Integer, SearchResult> entityResults = new HashMap<>();
     private static final List<ScheduledLabel> scheduledLabels = new ArrayList<>();
 
     private record ScheduledLabel(Vec3 position, Component text, boolean seeThrough) {}
@@ -60,6 +63,9 @@ public class Rendering {
     public static void addResults(Collection<SearchResult> newResults) {
         for (SearchResult result : newResults) {
             results.put(result.pos(), result);
+            if (result.isEntityResult() && result.entityId() != null) {
+                entityResults.put(result.entityId(), result);
+            }
             if (result.name() != null) namedResults.put(result.pos(), result);
         }
     }
@@ -67,6 +73,7 @@ public class Rendering {
     public static void clearResults() {
         lastRequest = null;
         results.clear();
+        entityResults.clear();
         namedResults.clear();
     }
 
@@ -177,6 +184,49 @@ public class Rendering {
     }
 
     // ----------------------------
+    // ENTITY HIGHLIGHT RENDERING
+    // ----------------------------
+    public static void renderEntityHighlights(MultiBufferSource.BufferSource bufferSource, Camera camera, float tickDelta) {
+        if (entityResults.isEmpty()) return;
+
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.level == null) return;
+
+        Vec3 camPos = camera.position();
+
+        PoseStack pose = new PoseStack();
+        pose.mulPose(Axis.XP.rotationDegrees(camera.getXRot()));
+        pose.mulPose(Axis.YP.rotationDegrees(camera.getYRot() - 180f));
+
+        VertexConsumer consumer = bufferSource.getBuffer(DEBUG_QUADS_NO_DEPTH);
+
+        float progress = getRenderingProgress(tickDelta);
+        int rgbColor = CurrentGradientHolder.getColour(getBaseProgress(ticksSinceSearch, tickDelta));
+        float r = ARGB.red(rgbColor) / 255f;
+        float g = ARGB.green(rgbColor) / 255f;
+        float b = ARGB.blue(rgbColor) / 255f;
+
+        float baseAlpha = 0.4f;
+        float alpha = baseAlpha - (progress * baseAlpha / 2f);
+
+        float scale = easingFunc(progress);
+
+        List<Integer> missingEntities = new ArrayList<>();
+
+        for (Map.Entry<Integer, SearchResult> entry : entityResults.entrySet()) {
+            Entity entity = minecraft.level.getEntity(entry.getKey());
+            if (entity == null) {
+                missingEntities.add(entry.getKey());
+                continue;
+            }
+
+            renderEntityBox(camPos, entity, consumer, pose, r, g, b, alpha, scale);
+        }
+
+        missingEntities.forEach(entityResults::remove);
+    }
+
+    // ----------------------------
     // BLOCK BOX RENDERING (FILLED CUBES)
     // ----------------------------
     public static void renderBoxes(MultiBufferSource.BufferSource bufferSource, Camera camera, float tickDelta) {
@@ -208,6 +258,7 @@ public class Rendering {
         float scale = easingFunc(progress);
 
         for (SearchResult result : getResults().values()) {
+            if (result.isEntityResult()) continue;
             // Render the main box with RGB color.
             renderBox(camPos, result.pos(), consumer, pose, r, g, b, alpha, scale);
 
@@ -286,6 +337,55 @@ public class Rendering {
         consumer.addVertex(matrix, -1, 1, -1).setColor(color);
 
         // +X
+        consumer.addVertex(matrix, 1, -1, -1).setColor(color);
+        consumer.addVertex(matrix, 1, 1, -1).setColor(color);
+        consumer.addVertex(matrix, 1, 1, 1).setColor(color);
+        consumer.addVertex(matrix, 1, -1, 1).setColor(color);
+
+        pose.popPose();
+    }
+
+    private static void renderEntityBox(Vec3 cameraPos, Entity entity, VertexConsumer consumer,
+                                        PoseStack pose, float r, float g, float b, float a, float scale) {
+        pose.pushPose();
+
+        AABB bounds = entity.getBoundingBox().inflate(0.05);
+        Vec3 center = bounds.getCenter();
+        pose.translate(center.x - cameraPos.x, center.y - cameraPos.y, center.z - cameraPos.z);
+
+        float halfX = (float) (bounds.getXsize() * 0.5f * scale);
+        float halfY = (float) (bounds.getYsize() * 0.5f * scale);
+        float halfZ = (float) (bounds.getZsize() * 0.5f * scale);
+        pose.scale(halfX, halfY, halfZ);
+
+        Matrix4f matrix = pose.last().pose();
+        int color = ARGB.color((int) (a * 255), (int) (r * 255), (int) (g * 255), (int) (b * 255));
+
+        consumer.addVertex(matrix, -1, -1, -1).setColor(color);
+        consumer.addVertex(matrix, -1, 1, -1).setColor(color);
+        consumer.addVertex(matrix, 1, 1, -1).setColor(color);
+        consumer.addVertex(matrix, 1, -1, -1).setColor(color);
+
+        consumer.addVertex(matrix, -1, -1, 1).setColor(color);
+        consumer.addVertex(matrix, 1, -1, 1).setColor(color);
+        consumer.addVertex(matrix, 1, 1, 1).setColor(color);
+        consumer.addVertex(matrix, -1, 1, 1).setColor(color);
+
+        consumer.addVertex(matrix, -1, -1, -1).setColor(color);
+        consumer.addVertex(matrix, 1, -1, -1).setColor(color);
+        consumer.addVertex(matrix, 1, -1, 1).setColor(color);
+        consumer.addVertex(matrix, -1, -1, 1).setColor(color);
+
+        consumer.addVertex(matrix, -1, 1, -1).setColor(color);
+        consumer.addVertex(matrix, -1, 1, 1).setColor(color);
+        consumer.addVertex(matrix, 1, 1, 1).setColor(color);
+        consumer.addVertex(matrix, 1, 1, -1).setColor(color);
+
+        consumer.addVertex(matrix, -1, -1, -1).setColor(color);
+        consumer.addVertex(matrix, -1, -1, 1).setColor(color);
+        consumer.addVertex(matrix, -1, 1, 1).setColor(color);
+        consumer.addVertex(matrix, -1, 1, -1).setColor(color);
+
         consumer.addVertex(matrix, 1, -1, -1).setColor(color);
         consumer.addVertex(matrix, 1, 1, -1).setColor(color);
         consumer.addVertex(matrix, 1, 1, 1).setColor(color);

@@ -20,6 +20,7 @@ import net.minecraft.tags.TagKey;
 import red.jackf.jackfredlib.api.extracommandsourcedata.ESD;
 import red.jackf.whereisit.api.criteria.builtin.*;
 import red.jackf.whereisit.config.WhereIsItConfig;
+import red.jackf.whereisit.networking.ClientCapabilities;
 import red.jackf.whereisit.networking.ClientboundResultsPacket;
 import red.jackf.whereisit.search.SearchHandler;
 
@@ -157,6 +158,6 @@ public class WhereIsCommand {
     private static void doSearch(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         var player = ctx.getSource().getPlayerOrException();
         var request = ESD.getCustom(ctx, CommandCriteria.DEFINITION).toRequest();
-        SearchHandler.handle(ClientboundResultsPacket.WHEREIS_COMMAND_ID, request, player);
+        SearchHandler.handle(ClientboundResultsPacket.WHEREIS_COMMAND_ID, request, player, ClientCapabilities.supportsEntityIds(player));
     }
 }

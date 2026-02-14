@@ -6,6 +6,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
 import net.minecraft.client.KeyMapping;
@@ -30,6 +31,7 @@ import red.jackf.whereisit.client.render.CurrentGradientHolder;
 import red.jackf.whereisit.client.render.Rendering;
 import red.jackf.whereisit.client.util.TextUtil;
 import red.jackf.whereisit.config.WhereIsItConfig;
+import red.jackf.whereisit.networking.ServerboundClientCapabilitiesPacket;
 
 import java.util.Collection;
 import java.util.function.Supplier;
@@ -92,7 +94,13 @@ public class WhereIsItClient implements ClientModInitializer {
         });
 
         // don't try to search in the main menu lmao
-        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> inGame = true);
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+            inGame = true;
+            // test type in packet entityID
+            if (ClientPlayNetworking.canSend(ServerboundClientCapabilitiesPacket.TYPE)) {
+                ClientPlayNetworking.send(new ServerboundClientCapabilitiesPacket(true));
+            }
+        });
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             inGame = false;
             clearResults();

@@ -9,7 +9,6 @@ import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import org.joml.Matrix4f;
 import org.joml.Vector4f;
-import org.lwjgl.opengl.GL11;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -53,6 +52,7 @@ public abstract class LevelRendererMixin {
 
         // Rendering boxes
         Rendering.renderBoxes(bufferSource, camera, tickDelta);
+        Rendering.renderEntityHighlights(bufferSource, camera, tickDelta);
 
         // Rendering labels
         Rendering.renderLabels(poseStack, camera, bufferSource);

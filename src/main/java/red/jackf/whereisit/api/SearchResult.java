@@ -26,7 +26,26 @@ public final class SearchResult {
             SearchResult::customNameOffset,
             BlockPos.STREAM_CODEC.apply(ByteBufCodecs.collection(HashSet::new)),
             SearchResult::otherPositions,
+            ByteBufCodecs.VAR_INT.apply(ByteBufCodecs::optional).map(opt -> opt.orElse(null), Optional::ofNullable),
+            SearchResult::entityId,
             SearchResult::new
+    );
+
+    /**
+     * Legacy codec to support packets sent before entity ids were included in {@link SearchResult}.
+     */
+    public static final StreamCodec<RegistryFriendlyByteBuf, SearchResult> LEGACY_STREAM_CODEC = StreamCodec.composite(
+            BlockPos.STREAM_CODEC,
+            SearchResult::pos,
+            ItemStack.STREAM_CODEC.apply(ByteBufCodecs::optional).map(opt -> opt.orElse(null), Optional::ofNullable),
+            SearchResult::item,
+            ComponentSerialization.OPTIONAL_STREAM_CODEC.map(opt -> opt.orElse(null), Optional::ofNullable),
+            SearchResult::name,
+            Codecs.VEC3.apply(ByteBufCodecs::optional).map(opt -> opt.orElse(null), Optional::ofNullable),
+            SearchResult::customNameOffset,
+            BlockPos.STREAM_CODEC.apply(ByteBufCodecs.collection(HashSet::new)),
+            SearchResult::otherPositions,
+            SearchResult::legacy
     );
 
     private final BlockPos pos;
@@ -34,17 +53,28 @@ public final class SearchResult {
     private final @Nullable Component name;
     private final @Nullable Vec3 nameOffset;
     private final Set<BlockPos> otherPositions = new HashSet<>();
+    private final @Nullable Integer entityId;
 
     private SearchResult(BlockPos pos,
                          @Nullable ItemStack item,
                          @Nullable Component name,
                          @Nullable Vec3 nameOffset,
-                         Collection<BlockPos> otherPositions) {
+                         Collection<BlockPos> otherPositions,
+                         @Nullable Integer entityId) {
         this.pos = pos;
         this.item = item;
         this.name = name;
         this.nameOffset = nameOffset;
         this.otherPositions.addAll(otherPositions);
+        this.entityId = entityId;
+    }
+
+    private static SearchResult legacy(BlockPos pos,
+                                       @Nullable ItemStack item,
+                                       @Nullable Component name,
+                                       @Nullable Vec3 nameOffset,
+                                       Collection<BlockPos> otherPositions) {
+        return new SearchResult(pos, item, name, nameOffset, otherPositions, null);
     }
 
     public static Builder builder(BlockPos pos) {
@@ -71,6 +101,14 @@ public final class SearchResult {
         return otherPositions;
     }
 
+    public @Nullable Integer entityId() {
+        return entityId;
+    }
+
+    public boolean isEntityResult() {
+        return entityId != null;
+    }
+
     /**
      * @return Offset the label should be above the main position
      */
@@ -84,10 +122,19 @@ public final class SearchResult {
      * @return Search result with other positions added
      */
     public SearchResult withOtherPositions(List<BlockPos> otherPositions) {
-        var copy = new SearchResult(pos, item, name, nameOffset, otherPositions);
+        var copy = new SearchResult(pos, item, name, nameOffset, otherPositions, entityId);
         copy.otherPositions.addAll(otherPositions);
         copy.otherPositions.remove(pos);
         return copy;
+    }
+
+    /**
+     * Return a copy of this result with the given entity id attached.
+     * @param entityId Entity id to attach
+     * @return Search result with an entity id set
+     */
+    public SearchResult withEntityId(int entityId) {
+        return new SearchResult(pos, item, name, nameOffset, otherPositions, entityId);
     }
 
     /**
@@ -112,6 +159,7 @@ public final class SearchResult {
         private @Nullable Component name;
         private @Nullable Vec3 nameOffset;
         private final Set<BlockPos> otherPositions = new HashSet<>();
+        private @Nullable Integer entityId;
 
         private Builder(BlockPos pos) {
             this.pos = pos;
@@ -133,8 +181,13 @@ public final class SearchResult {
             return this;
         }
 
+        public Builder entityId(int entityId) {
+            this.entityId = entityId;
+            return this;
+        }
+
         public SearchResult build() {
-            return new SearchResult(pos, item, name, nameOffset, otherPositions);
+            return new SearchResult(pos, item, name, nameOffset, otherPositions, entityId);
         }
     }
 
@@ -143,12 +196,12 @@ public final class SearchResult {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         SearchResult result = (SearchResult) o;
-        return Objects.equals(pos, result.pos) && Objects.equals(item, result.item) && Objects.equals(name, result.name) && Objects.equals(nameOffset, result.nameOffset) && Objects.equals(otherPositions, result.otherPositions);
+        return Objects.equals(pos, result.pos) && Objects.equals(item, result.item) && Objects.equals(name, result.name) && Objects.equals(nameOffset, result.nameOffset) && Objects.equals(otherPositions, result.otherPositions) && Objects.equals(entityId, result.entityId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(pos, item, name, nameOffset, otherPositions);
+        return Objects.hash(pos, item, name, nameOffset, otherPositions, entityId);
     }
 
     @Override
@@ -159,6 +212,7 @@ public final class SearchResult {
                 ", name=" + name +
                 ", nameOffset=" + nameOffset +
                 ", otherPositions=" + otherPositions +
+                ", entityId=" + entityId +
                 '}';
     }
 }
