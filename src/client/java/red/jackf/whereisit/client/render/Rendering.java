@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.*;
 import com.mojang.math.Axis;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.InvalidateRenderStateCallback;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -30,6 +31,10 @@ import static red.jackf.whereisit.client.render.WhereIsItPipelines.*;
 
 @SuppressWarnings("resource")
 public class Rendering {
+    private static final String CHESTTRACKER_MOD_ID = "chesttracker";
+    private static final String CHEST_TRACKER_LEGACY_MOD_ID = "chest_tracker";
+    private static final boolean CHESTTRACKER_LOADED = FabricLoader.getInstance().isModLoaded(CHESTTRACKER_MOD_ID)
+            || FabricLoader.getInstance().isModLoaded(CHEST_TRACKER_LEGACY_MOD_ID);
 
     private static final Map<BlockPos, SearchResult> results = new HashMap<>();
     private static final Map<BlockPos, SearchResult> namedResults = new HashMap<>();
@@ -61,12 +66,15 @@ public class Rendering {
     }
 
     public static void addResults(Collection<SearchResult> newResults) {
+        boolean disableOwnContainerNameLabels = disableOwnContainerNameLabelsWhenChestTrackerLoaded();
         for (SearchResult result : newResults) {
             results.put(result.pos(), result);
             if (result.isEntityResult() && result.entityId() != null) {
                 entityResults.put(result.entityId(), result);
             }
-            if (result.name() != null) namedResults.put(result.pos(), result);
+            if (!disableOwnContainerNameLabels && result.name() != null && !isBlockedLabel(result.name())) {
+                namedResults.put(result.pos(), result);
+            }
         }
     }
 
@@ -86,7 +94,11 @@ public class Rendering {
     public static void resetSearchTime() { ticksSinceSearch = 0; }
     public static Map<BlockPos, SearchResult> getResults() { return results; }
     public static Map<Integer, SearchResult> getEntityResults() { return entityResults; }
-    public static Map<BlockPos, SearchResult> getNamedResults() { return namedResults; }
+    public static Map<BlockPos, SearchResult> getNamedResults() {
+        if (disableOwnContainerNameLabelsWhenChestTrackerLoaded()) return Collections.emptyMap();
+        return namedResults;
+    }
+
 
     // ----------------------------
     // SLOT HIGHLIGHTING (in AbstractContainerScreenMixin Mixin)
@@ -123,11 +135,46 @@ public class Rendering {
     // LABEL RENDERING
     // ----------------------------
     public static void scheduleLabel(Vec3 pos, Component name, boolean seeThrough) {
-        if (pos == null || name == null) return;
+        if (pos == null || name == null || isBlockedLabel(name)) return;
         scheduledLabels.add(new ScheduledLabel(pos, name, seeThrough));
     }
 
+    private static boolean isBlockedLabel(Component name) {
+        String normalizedName = normalizeLabelText(name.getString());
+        if (normalizedName.isEmpty()) return false;
+
+        List<String> blockedNames = WhereIsItConfig.INSTANCE.instance().getClient().blockedContainerLabelNames;
+        if (blockedNames == null || blockedNames.isEmpty()) return false;
+
+        for (String blockedName : blockedNames) {
+            if (normalizedName.equals(normalizeLabelText(blockedName))) return true;
+        }
+        return false;
+    }
+
+    private static String normalizeLabelText(@Nullable String text) {
+        return text == null ? "" : text.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static boolean disableOwnContainerNameLabelsWhenChestTrackerLoaded() {
+        var compatibility = WhereIsItConfig.INSTANCE.instance().getClient().compatibility;
+        return compatibility.disableOwnContainerNameLabelsWhenChestTrackerLoaded && CHESTTRACKER_LOADED;
+    }
+
     public static void renderLabels(PoseStack ignoredPoseStack, Camera camera, MultiBufferSource consumers) {
+        if (disableOwnContainerNameLabelsWhenChestTrackerLoaded()) {
+            namedResults.clear();
+        }
+
+        if (shouldBeRendering()
+                && WhereIsItConfig.INSTANCE.instance().getClient().showContainerNamesInResults
+                && !disableOwnContainerNameLabelsWhenChestTrackerLoaded()) {
+            for (SearchResult value : namedResults.values()) {
+                scheduleLabel(value.pos().getCenter().add(value.nameOffset()), value.name(),
+                        WhereIsItConfig.INSTANCE.instance().getCommon().debug.labelsAreSeeThrough);
+            }
+        }
+
         if (scheduledLabels.isEmpty()) return;
 
         Vec3 camPos = camera.getPosition();

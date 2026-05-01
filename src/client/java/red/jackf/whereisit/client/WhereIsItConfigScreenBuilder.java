@@ -41,6 +41,7 @@ public class WhereIsItConfigScreenBuilder {
                 .category(ConfigCategory.createBuilder()
                         .name(translatable("whereisit.config.title"))
                         .group(makeClientGroup(instance.defaults(), instance.instance()))
+                        .group(makeBlockedContainerLabelNamesOption(instance.defaults(), instance.instance()))
                         .group(makeCommonGroup(instance.defaults(), instance.instance()))
                         .group(ListOption.<String>createBuilder()
                                 .name(translatable("whereisit.config.common.commandAliases"))
@@ -222,6 +223,21 @@ public class WhereIsItConfigScreenBuilder {
         return List.of(showNameToggle, nameSizeOption, yPositionOption);
     }
 
+    private static ListOption<String> makeBlockedContainerLabelNamesOption(WhereIsItConfig defaults, WhereIsItConfig config) {
+        return ListOption.<String>createBuilder()
+                .name(translatable("whereisit.config.client.blockedContainerLabelNames"))
+                .description(OptionDescription.of(translatable("whereisit.config.client.blockedContainerLabelNames.description")))
+                .controller(StringControllerBuilder::create)
+                .binding(
+                        defaults.getClient().blockedContainerLabelNames,
+                        () -> config.getClient().blockedContainerLabelNames,
+                        l -> config.getClient().blockedContainerLabelNames = l
+                )
+                .initial("Example Chest Name")
+                .insertEntriesAtEnd(true)
+                .build();
+    }
+
     private static Optional<ImageRenderer> getLabelImage(Supplier<Float> scaleGetter) {
         return Optional.of(new ImageRenderer() {
             private static final int imageWidth = 700;
@@ -376,6 +392,25 @@ public class WhereIsItConfigScreenBuilder {
                 () -> config.getClient().compatibility.emiSupport,
                 b -> config.getClient().compatibility.emiSupport = b
         );
+        var chestTrackerLoaded = FabricLoader.getInstance().isModLoaded("chesttracker")
+                || FabricLoader.getInstance().isModLoaded("chest_tracker");
+        var disableOwnLabelsForChestTrackerOptionDesc = OptionDescription.createBuilder()
+                .text(translatable("whereisit.config.compatibility.client.disableOwnContainerNameLabelsWhenChestTrackerLoaded.description"));
+        if (!chestTrackerLoaded) {
+            disableOwnLabelsForChestTrackerOptionDesc.text(translatable("whereisit.config.compatibility.modNotInstalled").withStyle(ChatFormatting.RED));
+        }
+        var disableOwnLabelsForChestTrackerOption = Option.<Boolean>createBuilder()
+                .name(translatable("whereisit.config.compatibility.client.disableOwnContainerNameLabelsWhenChestTrackerLoaded"))
+                .description(disableOwnLabelsForChestTrackerOptionDesc.build())
+                .binding(
+                        defaults.getClient().compatibility.disableOwnContainerNameLabelsWhenChestTrackerLoaded,
+                        () -> config.getClient().compatibility.disableOwnContainerNameLabelsWhenChestTrackerLoaded,
+                        b -> config.getClient().compatibility.disableOwnContainerNameLabelsWhenChestTrackerLoaded = b
+                )
+                .controller(opt -> BooleanControllerBuilder.create(opt)
+                        .coloured(true)
+                        .onOffFormatter())
+                .build();
 
         return OptionGroup.createBuilder()
                 .name(translatable("whereisit.config.client"))
@@ -397,6 +432,7 @@ public class WhereIsItConfigScreenBuilder {
                 .option(jeiSupport)
                 .option(reiSupport)
                 .option(emiSupport)
+                .option(disableOwnLabelsForChestTrackerOption)
                 .build();
     }
 
