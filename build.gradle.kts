@@ -207,7 +207,7 @@ tasks.withType<JavaCompile>().configureEach {
         "-Xmaxerrs", "1000"
     ))
 
-    val sourceSetName = this.name.replace("compile", "").replace("Java", "").toLowerCase()
+    val sourceSetName = this.name.replace("compile", "").replace("Java", "").lowercase()
     if (sourceSetName.isNotEmpty()) {
         options.compilerArgumentProviders.add(CommandLineArgumentProvider {
             listOf(
