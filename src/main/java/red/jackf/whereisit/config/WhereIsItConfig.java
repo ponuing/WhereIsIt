@@ -89,6 +89,9 @@ public class WhereIsItConfig {
         @SerialEntry(comment = "Text position Y above container")
         public float Ypositiontext = 0f;
 
+        @SerialEntry(comment = "Container label names that should not be rendered. Matching is case-insensitive.")
+        public List<String> blockedContainerLabelNames = new ArrayList<>();
+
         @SerialEntry(comment = "Whether to use a random pride colour scheme each search.")
         public boolean randomScheme = true;
 
@@ -113,6 +116,9 @@ public class WhereIsItConfig {
 
             @SerialEntry(comment = "Whether to enable grabbing items/tags from EMI.")
             public boolean emiSupport = true;
+
+            @SerialEntry(comment = "Whether to always disable Where Is It's own container-name labels when ChestTracker is loaded.")
+            public boolean disableOwnContainerNameLabelsWhenChestTrackerLoaded = true;
         }
 
         @SerialEntry(comment = "Client-sided debug options")
@@ -130,6 +136,11 @@ public class WhereIsItConfig {
             this.highlightOpacity = Mth.clamp(this.highlightOpacity, 0, 255);
             this.solidColour = new Color(this.solidColour.getRGB() | 0xFF_000000);
             this.containerNameLabelScale = Mth.clamp(this.containerNameLabelScale, 0.25f, 2f);
+            if (this.blockedContainerLabelNames == null) {
+                this.blockedContainerLabelNames = new ArrayList<>();
+            } else {
+                this.blockedContainerLabelNames.removeIf(entry -> entry == null || entry.isBlank());
+            }
 
             if (this.colourScheme == null) this.colourScheme = ColourScheme.SOLID;
         }
