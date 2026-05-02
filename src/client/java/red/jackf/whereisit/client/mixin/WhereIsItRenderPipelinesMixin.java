@@ -7,9 +7,7 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.ResourceLocation;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -19,14 +17,12 @@ import red.jackf.whereisit.client.render.WhereIsItPipelines;
 @Mixin(RenderPipelines.class)
 public class WhereIsItRenderPipelinesMixin {
 
-    @Shadow @Final private static RenderPipeline.Snippet MATRICES_PROJECTION_SNIPPET;
-
     @Inject(method = "<clinit>", at = @At("TAIL"))
     private static void whereisit_onRegisterPipelines(CallbackInfo ci) {
 
         // Регистрируем PIPELINE
         WhereIsItPipelines.DEBUG_QUADS_NO_DEPTH_PIPELINE =
-                RenderPipeline.builder(MATRICES_PROJECTION_SNIPPET)
+                RenderPipeline.builder(RenderPipelines.MATRICES_COLOR_SNIPPET)
                         .withLocation(ResourceLocation.fromNamespaceAndPath("whereisit", "pipeline/debug_quads_no_depth"))
                         .withVertexShader("core/position_color")
                         .withFragmentShader("core/position_color")
@@ -38,7 +34,7 @@ public class WhereIsItRenderPipelinesMixin {
                         .build();
 
         WhereIsItPipelines.DEBUG_QUADS_LEQUAL_DEPTH_PIPELINE =
-                RenderPipeline.builder(MATRICES_PROJECTION_SNIPPET)
+                RenderPipeline.builder(RenderPipelines.MATRICES_COLOR_SNIPPET)
                         .withLocation(ResourceLocation.fromNamespaceAndPath("whereisit", "pipeline/debug_quads_lequal"))
                         .withVertexShader("core/position_color")
                         .withFragmentShader("core/position_color")
@@ -50,7 +46,7 @@ public class WhereIsItRenderPipelinesMixin {
                         .build();
 
         WhereIsItPipelines.TEXT_BACKGROUND_NO_DEPTH_PIPELINE =
-                RenderPipeline.builder(MATRICES_PROJECTION_SNIPPET)
+                RenderPipeline.builder(RenderPipelines.MATRICES_COLOR_SNIPPET)
                         .withLocation(ResourceLocation.fromNamespaceAndPath("whereisit", "pipeline/text_background_no_depth"))
                         .withVertexShader("core/position_color")
                         .withFragmentShader("core/position_color")

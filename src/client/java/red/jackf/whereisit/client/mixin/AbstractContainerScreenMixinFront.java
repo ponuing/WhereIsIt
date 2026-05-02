@@ -12,7 +12,7 @@ import red.jackf.whereisit.config.WhereIsItConfig;
 @Mixin(AbstractContainerScreen.class)
 public class AbstractContainerScreenMixinFront {
     @Inject(
-            method = "renderContents(Lnet/minecraft/client/gui/GuiGraphics;IIF)V",
+            method = "render(Lnet/minecraft/client/gui/GuiGraphics;IIF)V",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/client/gui/screens/inventory/AbstractContainerScreen;renderSlotHighlightFront(Lnet/minecraft/client/gui/GuiGraphics;)V",

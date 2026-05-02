@@ -240,7 +240,7 @@ public class Rendering {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null) return;
 
-        Vec3 camPos = camera.position();
+        Vec3 camPos = camera.getPosition();
 
         PoseStack pose = new PoseStack();
         pose.mulPose(Axis.XP.rotationDegrees(camera.getXRot()));
