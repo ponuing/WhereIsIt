@@ -68,6 +68,7 @@ public class SearchHandler {
         var results = new HashMap<BlockPos, SearchResult>();
         var range = WhereIsItConfig.INSTANCE.instance().getCommon().searchRangeBlocks;
         var maxRange = range * range;
+        boolean useServerSideRendering = WhereIsItConfig.INSTANCE.instance().getCommon().debug.forceServerSideHighlightsOnly || !ServerPlayNetworking.canSend(player, ClientboundResultsPacket.TYPE);
         for (int x = startPos.getX() - range; x <= startPos.getX() + range; x++) {
             pos.setX(x);
             for (int y = startPos.getY() - range; y <= startPos.getY() + range; y++) {
@@ -90,8 +91,8 @@ public class SearchHandler {
                 }
             }
         }
-        // Entity search (only if the client can render them)
-        if (clientSupportsEntities) {
+        // Entity search (if the client can render them, or if we're doing server-side rendering)
+        if (clientSupportsEntities || useServerSideRendering) {
             var aabb = player.getBoundingBox().inflate(range);
             var entities = level.getEntities(player, aabb, e -> true);
 
@@ -118,7 +119,7 @@ public class SearchHandler {
 
         // send to player
         if (!results.isEmpty()) {
-            if (WhereIsItConfig.INSTANCE.instance().getCommon().debug.forceServerSideHighlightsOnly || !ServerPlayNetworking.canSend(player, ClientboundResultsPacket.TYPE)) {
+            if (useServerSideRendering) {
                 ServerSideRenderer.doServersideRendering(player, results.values());
             } else {
                 // send packet
