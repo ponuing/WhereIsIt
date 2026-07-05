@@ -132,7 +132,7 @@ public class WhereIsItConfig {
         public void validate() {
             this.slotHighlightMouseFactor = Mth.clamp(this.slotHighlightMouseFactor, 0f, 4f);
             this.slotHighlightXFactor = Mth.clamp(this.slotHighlightXFactor, 0f, 4f);
-            this.highlightTimeFactor = Mth.clamp(this.slotHighlightXFactor, 0.1f, 4f);
+            this.highlightTimeFactor = Mth.clamp(this.highlightTimeFactor, 0.1f, 4f);
             this.highlightOpacity = Mth.clamp(this.highlightOpacity, 0, 255);
             this.solidColour = new Color(this.solidColour.getRGB() | 0xFF_000000);
             this.containerNameLabelScale = Mth.clamp(this.containerNameLabelScale, 0.25f, 2f);
