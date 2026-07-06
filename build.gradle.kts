@@ -224,6 +224,11 @@ tasks.jar {
     from("LICENSE") {
         rename { "${it}_${properties["archivesBaseName"]}"}
     }
+    
+    // Explicitly bundle included dependencies (Jars-in-Jars) into the standard jar
+    into("META-INF/jars") {
+        from(configurations.named("include"))
+    }
 }
 
 // configure the maven publication
