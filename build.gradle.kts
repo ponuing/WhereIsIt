@@ -328,12 +328,12 @@ if (canPublish) {
         releaseName = "${properties["mod_name"]} $newTag"
         targetCommitish = grgit!!.branch.current().name
         releaseAssets.from(
-            tasks["jar"].outputs.files,
+            tasks["remapJar"].outputs.files,
             tasks["sourcesJar"].outputs.files,
         )
         subprojects.forEach {
             releaseAssets.from(
-                it.tasks["jar"].outputs.files,
+                it.tasks["remapJar"].outputs.files,
                 it.tasks["sourcesJar"].outputs.files,
             )
         }
@@ -352,7 +352,7 @@ if (canPublish) {
             })
             modLoaders.add("fabric")
             modLoaders.add("quilt")
-            file.set(tasks.named<Jar>("jar").get().archiveFile)
+            file.set(tasks.named<org.gradle.api.tasks.bundling.AbstractArchiveTask>("remapJar").flatMap { it.archiveFile })
 
             if (System.getenv().containsKey("CURSEFORGE_TOKEN") || dryRun.get()) {
                 curseforge {
