@@ -96,13 +96,20 @@ public class Rendering {
         return namedResults;
     }
 
-    public static void renderWorld(Camera camera, float tickDelta, RenderPass renderPass) {
+    /**
+     * Collects the geometry for this frame and uploads it. This has to happen <b>before</b> a render
+     * pass is opened: 26.3 uses {@code copyToBuffer} for the upload, which the command encoder
+     * rejects while a pass is active.
+     */
+    public static DrawCollector prepareWorld(Camera camera, float tickDelta) {
         DrawCollector drawCollector = new DrawCollector();
 
         renderBoxes(camera, tickDelta, drawCollector);
         renderEntityHighlights(camera, tickDelta, drawCollector);
         renderLabels(camera, drawCollector);
-        drawCollector.draw(renderPass);
+        drawCollector.upload();
+
+        return drawCollector;
     }
 
     /**
@@ -469,7 +476,7 @@ public class Rendering {
         pose.popPose();
     }
 
-    private static final class DrawCollector {
+    public static final class DrawCollector {
         private final List<StagedVertexBuffer.Draw> draws = new ArrayList<>();
         private final List<PreparedRenderType> preparedRenderTypes = new ArrayList<>();
         @Nullable private RenderType lastRenderType;
@@ -493,9 +500,18 @@ public class Rendering {
             return draw;
         }
 
-        private void draw(RenderPass renderPass) {
+        private void upload() {
             STAGED_BUFFER.upload();
+        }
 
+        public boolean hasDraws() {
+            return !draws.isEmpty();
+        }
+
+        /**
+         * Draws the collected geometry. Only {@code drawFromBuffer} is allowed in here, no uploads.
+         */
+        public void draw(RenderPass renderPass) {
             for (int i = 0; i < draws.size(); i++) {
                 StagedVertexBuffer.ExecuteInfo executeInfo = STAGED_BUFFER.getExecuteInfo(draws.get(i));
                 if (executeInfo != null) {

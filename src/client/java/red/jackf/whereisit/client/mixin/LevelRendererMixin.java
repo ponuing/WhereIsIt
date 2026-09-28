@@ -44,20 +44,25 @@ public abstract class LevelRendererMixin {
         Camera camera = minecraft.gameRenderer.mainCamera();
         RenderTarget mainTarget = minecraft.gameRenderer.mainRenderTarget();
 
-        RenderPass renderPass = RenderSystem.getDevice()
-                .createCommandEncoder()
-                .createRenderPass(
-                        () -> "WhereIsIt",
-                        mainTarget.getColorTextureView(),
-                        Optional.empty(),
-                        mainTarget.getDepthTextureView(),
-                        OptionalDouble.of(0.0)
-                );
-        try {
-            RenderSystem.bindDefaultUniforms(renderPass);
-            Rendering.renderWorld(camera, tickDelta, renderPass);
-        } finally {
-            renderPass.close();
+        // has to be recorded and uploaded before the pass is opened, the upload is a buffer copy
+        Rendering.DrawCollector drawCollector = Rendering.prepareWorld(camera, tickDelta);
+
+        if (drawCollector.hasDraws()) {
+            RenderPass renderPass = RenderSystem.getDevice()
+                    .createCommandEncoder()
+                    .createRenderPass(
+                            () -> "WhereIsIt",
+                            mainTarget.getColorTextureView(),
+                            Optional.empty(),
+                            mainTarget.getDepthTextureView(),
+                            OptionalDouble.of(0.0)
+                    );
+            try {
+                RenderSystem.bindDefaultUniforms(renderPass);
+                drawCollector.draw(renderPass);
+            } finally {
+                renderPass.close();
+            }
         }
 
         // has to happen after the pass is closed, the buffer pools create a fence here
