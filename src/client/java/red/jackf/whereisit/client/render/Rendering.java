@@ -99,14 +99,18 @@ public class Rendering {
     public static void renderWorld(Camera camera, float tickDelta, RenderPass renderPass) {
         DrawCollector drawCollector = new DrawCollector();
 
-        try {
-            renderBoxes(camera, tickDelta, drawCollector);
-            renderEntityHighlights(camera, tickDelta, drawCollector);
-            renderLabels(camera, drawCollector);
-            drawCollector.draw(renderPass);
-        } finally {
-            STAGED_BUFFER.endFrame();
-        }
+        renderBoxes(camera, tickDelta, drawCollector);
+        renderEntityHighlights(camera, tickDelta, drawCollector);
+        renderLabels(camera, drawCollector);
+        drawCollector.draw(renderPass);
+    }
+
+    /**
+     * Releases the staging buffers. Must be called <b>outside</b> of a render pass: 26.3 creates a
+     * fence here, and the command encoder rejects that while a pass is still open.
+     */
+    public static void endFrame() {
+        STAGED_BUFFER.endFrame();
     }
 
     /**

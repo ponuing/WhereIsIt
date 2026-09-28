@@ -59,5 +59,8 @@ public abstract class LevelRendererMixin {
         } finally {
             renderPass.close();
         }
+
+        // has to happen after the pass is closed, the buffer pools create a fence here
+        Rendering.endFrame();
     }
 }
