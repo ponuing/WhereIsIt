@@ -1,9 +1,11 @@
 package red.jackf.whereisit.client.mixin;
 
-import com.mojang.blaze3d.buffers.GpuBufferSlice;
+import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.resource.GraphicsResourceAllocator;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
+import com.mojang.renderpearl.api.commands.RenderPass;
 import net.minecraft.client.Camera;
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
@@ -15,6 +17,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import red.jackf.whereisit.client.render.Rendering;
 
+import java.util.Optional;
+import java.util.OptionalDouble;
+
 @Mixin(LevelRenderer.class)
 public abstract class LevelRendererMixin {
 
@@ -23,20 +28,36 @@ public abstract class LevelRendererMixin {
             at = @At("TAIL")
     )
     private void onRenderLevelEnd(
-            GraphicsResourceAllocator graphicsResourceAllocator,
-            DeltaTracker deltaTracker,
-            boolean renderBlockOutline,
+            GraphicsResourceAllocator resourceAllocator,
+            boolean renderOutline,
             CameraRenderState cameraState,
-            Matrix4fc modelViewMatrix,
             GpuBufferSlice terrainFog,
             Vector4f fogColor,
             boolean shouldRenderSky,
+            boolean consistentDepthRequired,
             CallbackInfo ci
     ) {
         if (!Rendering.shouldBeRendering()) return;
 
-        float tickDelta = deltaTracker.getGameTimeDeltaPartialTick(false);
-        Camera camera = Minecraft.getInstance().gameRenderer.mainCamera();
-        Rendering.renderWorld(camera, tickDelta);
+        Minecraft minecraft = Minecraft.getInstance();
+        float tickDelta = minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(false);
+        Camera camera = minecraft.gameRenderer.mainCamera();
+        RenderTarget mainTarget = minecraft.gameRenderer.mainRenderTarget();
+
+        RenderPass renderPass = RenderSystem.getDevice()
+                .createCommandEncoder()
+                .createRenderPass(
+                        () -> "WhereIsIt",
+                        mainTarget.getColorTextureView(),
+                        Optional.empty(),
+                        mainTarget.getDepthTextureView(),
+                        OptionalDouble.of(0.0)
+                );
+        try {
+            RenderSystem.bindDefaultUniforms(renderPass);
+            Rendering.renderWorld(camera, tickDelta, renderPass);
+        } finally {
+            renderPass.close();
+        }
     }
 }

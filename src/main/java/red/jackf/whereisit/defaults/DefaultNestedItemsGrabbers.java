@@ -27,7 +27,7 @@ public class DefaultNestedItemsGrabbers {
             BundleContents contents = source.get(DataComponents.BUNDLE_CONTENTS);
             if (contents == null) return Stream.empty();
 
-            return contents.itemCopyStream().filter(stack -> !stack.isEmpty());
+            return contents.itemCopies().filter(stack -> !stack.isEmpty());
         });
     }
 }

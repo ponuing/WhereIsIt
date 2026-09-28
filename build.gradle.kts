@@ -37,6 +37,7 @@ if (System.getenv().containsKey("NEW_TAG")) {
 }
 
 repositories {
+    mavenLocal()
     // Parchment Mappings
     maven {
         name = "ParchmentMC"
@@ -72,6 +73,7 @@ repositories {
         url = uri("https://maven.blamejared.com/")
         content {
             includeGroup("mezz.jei")
+            includeGroupAndSubgroups("net.mezzdev")
         }
     }
 
@@ -139,6 +141,8 @@ tasks.withType<JavaCompile> {
 loom {
     splitEnvironmentSourceSets()
 
+    sourceSets["client"].java.exclude("red/jackf/whereisit/client/compat/recipeviewers/WhereIsItREIPlugin.java")
+
     mods {
         create("whereisit") {
             sourceSet(sourceSets["main"])
@@ -180,20 +184,21 @@ dependencies {
     compileOnly("mezz.jei:jei-${properties["minecraft_version"]}-common-api:${properties["jei_version"]}")
     compileOnly("mezz.jei:jei-${properties["minecraft_version"]}-fabric-api:${properties["jei_version"]}")
     compileOnly("maven.modrinth:jei:${properties["jei_modrinth_id"]}")
-    compileOnly("dev.architectury:architectury-fabric:21.0.2")
+    //compileOnly("dev.architectury:architectury-fabric:21.0.2")
 
-    compileOnly("me.shedaniel:RoughlyEnoughItems-api-fabric:${properties["rei_version"]}")
-    compileOnly("me.shedaniel:RoughlyEnoughItems-default-plugin-fabric:${properties["rei_version"]}")
-    compileOnly("me.shedaniel:RoughlyEnoughItems-fabric:${properties["rei_version"]}")
+    // REI has no 26.3 build yet - disabled for this port
+    //compileOnly("me.shedaniel:RoughlyEnoughItems-api-fabric:${properties["rei_version"]}")
+    //compileOnly("me.shedaniel:RoughlyEnoughItems-default-plugin-fabric:${properties["rei_version"]}")
+    //compileOnly("me.shedaniel:RoughlyEnoughItems-fabric:${properties["rei_version"]}")
 
     //compileOnly("dev.emi:emi-fabric:${properties["emi_version"]}:api")
     // compileOnly("dev.emi:emi-fabric:${properties["emi_version"]}")
 
     // Recipe Viewer Runtimes
     localRuntime("mezz.jei:jei-${properties["minecraft_version"]}-fabric:${properties["jei_version"]}")
-    localRuntime("me.shedaniel:RoughlyEnoughItems-fabric:${properties["rei_version"]}") {
-        exclude(group = "net.fabricmc.fabric-api", module = "fabric-api")
-    }
+    //localRuntime("me.shedaniel:RoughlyEnoughItems-fabric:${properties["rei_version"]}") {
+    //    exclude(group = "net.fabricmc.fabric-api", module = "fabric-api")
+    //}
     //modLocalRuntime("dev.emi:emi-fabric:${properties["emi_version"]}")
 }
 
