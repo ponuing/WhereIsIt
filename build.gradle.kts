@@ -12,7 +12,7 @@ plugins {
     id("net.fabricmc.fabric-loom") version "1.16-SNAPSHOT"
     id("com.github.breadmoirai.github-release") version "2.4.1"
     id("org.ajoberstar.grgit") version "5.2.1"
-    id("me.modmuss50.mod-publish-plugin") version "0.3.3"
+    id("me.modmuss50.mod-publish-plugin") version "0.8.3"
 }
 
 val grgit: Grgit? = project.grgit
@@ -376,6 +376,8 @@ if (canPublish) {
                             slug.set(it)
                         }
                     }
+                    clientRequired = true
+                    serverRequired = true
                 }
             }
             if (System.getenv().containsKey("MODRINTH_TOKEN") || dryRun.get()) {
