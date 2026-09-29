@@ -1,6 +1,6 @@
 package red.jackf.whereisit.client.mixin;
 
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,7 +22,6 @@ public class WhereIsItRenderPipelinesMixin {
                         .build()
         );
         WhereIsItPipelines.DEBUG_QUADS_LEQUAL_DEPTH_PIPELINE = RenderPipelines.DEBUG_QUADS;
-        WhereIsItPipelines.TEXT_BACKGROUND_NO_DEPTH_PIPELINE = RenderPipelines.TEXT_BACKGROUND_SEE_THROUGH;
         WhereIsItPipelines.initRenderTypes();
     }
 }

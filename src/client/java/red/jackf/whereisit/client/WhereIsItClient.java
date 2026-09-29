@@ -18,7 +18,6 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
-import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import red.jackf.jackfredlib.api.base.Memoizer;
 import red.jackf.jackfredlib.client.api.toasts.*;
@@ -41,8 +40,8 @@ public class WhereIsItClient implements ClientModInitializer {
     private static final KeyMapping SEARCH = KeyMappingHelper.registerKeyMapping(
             new KeyMapping(
                     "key.whereisit.search",
-                    InputConstants.Type.KEYSYM,
-                    GLFW.GLFW_KEY_Y,
+                    InputConstants.Type.KEYBOARD,
+                    InputConstants.KEY_Y,
                     KeyMapping.Category.MISC
             )
     );

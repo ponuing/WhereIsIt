@@ -3,6 +3,7 @@ package red.jackf.whereisit.client.render;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.math.Axis;
+import com.mojang.renderpearl.api.commands.RenderPass;
 import net.fabricmc.fabric.api.client.rendering.v1.InvalidateRenderStateCallback;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Camera;
@@ -14,7 +15,6 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.StagedVertexBuffer;
 import net.minecraft.client.renderer.rendertype.PreparedRenderType;
 import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.ARGB;
@@ -24,6 +24,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
+import org.joml.Quaternionf;
 import red.jackf.whereisit.api.SearchRequest;
 import red.jackf.whereisit.api.SearchResult;
 import red.jackf.whereisit.config.WhereIsItConfig;
@@ -94,17 +95,35 @@ public class Rendering {
         return namedResults;
     }
 
-    public static void renderWorld(Camera camera, float tickDelta) {
+    /**
+     * Collects the geometry for this frame and uploads it. This has to happen <b>before</b> a render
+     * pass is opened: 26.3 uses {@code copyToBuffer} for the upload, which the command encoder
+     * rejects while a pass is active.
+     */
+    public static DrawCollector prepareWorld(Camera camera, float tickDelta) {
         DrawCollector drawCollector = new DrawCollector();
 
-        try {
-            renderBoxes(camera, tickDelta, drawCollector);
-            renderEntityHighlights(camera, tickDelta, drawCollector);
-            renderLabels(camera, drawCollector);
-            drawCollector.draw();
-        } finally {
-            STAGED_BUFFER.endFrame();
-        }
+        renderBoxes(camera, tickDelta, drawCollector);
+        renderEntityHighlights(camera, tickDelta, drawCollector);
+        renderLabels(camera, drawCollector);
+        drawCollector.upload();
+
+        return drawCollector;
+    }
+
+    /**
+     * Releases the staging buffers. Must be called <b>outside</b> of a render pass: 26.3 creates a
+     * fence here, and the command encoder rejects that while a pass is still open.
+     */
+    public static void endFrame() {
+        STAGED_BUFFER.endFrame();
+    }
+
+    /**
+     * In 26.3 {@link PoseStack#mulPose} no longer accepts a {@link Quaternionf} directly, only a matrix.
+     */
+    private static void mulPose(PoseStack pose, Quaternionf rotation) {
+        pose.mulPose(new Matrix4f().rotation(rotation));
     }
     // ----------------------------
     // SLOT HIGHLIGHTING (in AbstractContainerScreenMixin Mixin)
@@ -171,6 +190,9 @@ public class Rendering {
         if (disableOwnContainerNameLabelsWhenChestTrackerLoaded()) {
             namedResults.clear();
         }
+        if (Minecraft.getInstance().gui.hud.isHidden()) {
+            return;
+        }
 
         if (shouldBeRendering()
                 && WhereIsItConfig.INSTANCE.instance().getClient().showContainerNamesInResults
@@ -187,8 +209,8 @@ public class Rendering {
 
         // Create a PoseStack WITH CAMERA ROTATIONS
         PoseStack pose = new PoseStack();
-        pose.mulPose(Axis.XP.rotationDegrees(camera.xRot()));
-        pose.mulPose(Axis.YP.rotationDegrees(camera.yRot() + 180f));
+        mulPose(pose, Axis.XP.rotationDegrees(camera.xRot()));
+        mulPose(pose, Axis.YP.rotationDegrees(camera.yRot() + 180f));
 
         scheduledLabels.stream()
                 .sorted(Comparator.comparingDouble(label -> -camPos.distanceToSqr(label.position)))
@@ -206,8 +228,8 @@ public class Rendering {
         final double zOffset = label.position.z - camPos.z;
         pose.translate(xOffset, yOffset, zOffset);
 
-        pose.mulPose(Axis.YP.rotationDegrees(-camera.yRot()));
-        pose.mulPose(Axis.XP.rotationDegrees(camera.xRot()));
+        mulPose(pose, Axis.YP.rotationDegrees(-camera.yRot()));
+        mulPose(pose, Axis.XP.rotationDegrees(camera.xRot()));
 
         // Scale
         float scale = 0.025f * WhereIsItConfig.INSTANCE.instance().getClient().containerNameLabelScale;
@@ -220,12 +242,10 @@ public class Rendering {
         // Background
         int bgColour = ((int) (Minecraft.getInstance().options.getBackgroundOpacity(0.25F) * 255F)) << 24;
         if (bgColour != 0) {
-            RenderType backgroundType = label.seeThrough ? RenderTypes.textBackgroundSeeThrough() : RenderTypes.textBackground();
-            VertexConsumer bgBuffer = drawCollector.getBuffer(backgroundType);
-            bgBuffer.addVertex(matrix, x - 1, -1f, 0).setColor(bgColour).setLight(FULL_BRIGHT);
-            bgBuffer.addVertex(matrix, x - 1, 10f, 0).setColor(bgColour).setLight(FULL_BRIGHT);
-            bgBuffer.addVertex(matrix, x + width, 10f, 0).setColor(bgColour).setLight(FULL_BRIGHT);
-            bgBuffer.addVertex(matrix, x + width, -1f, 0).setColor(bgColour).setLight(FULL_BRIGHT);
+            TextRenderable background = Minecraft.getInstance().font.prepareBackground(x - 1, -1f, x + width, 10f, bgColour);
+            Font.DisplayMode bgMode = label.seeThrough ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL;
+            VertexConsumer bgBuffer = drawCollector.getBuffer(background.renderType(bgMode));
+            background.render(matrix, bgBuffer, FULL_BRIGHT, false);
         }
 
         Font.DisplayMode mode = Font.DisplayMode.SEE_THROUGH;
@@ -262,8 +282,8 @@ public class Rendering {
         Vec3 camPos = camera.position();
 
         PoseStack pose = new PoseStack();
-        pose.mulPose(Axis.XP.rotationDegrees(camera.xRot()));
-        pose.mulPose(Axis.YP.rotationDegrees(camera.yRot() - 180f));
+        mulPose(pose, Axis.XP.rotationDegrees(camera.xRot()));
+        mulPose(pose, Axis.YP.rotationDegrees(camera.yRot() - 180f));
 
         VertexConsumer consumer = drawCollector.getBuffer(DEBUG_QUADS_NO_DEPTH);
 
@@ -302,8 +322,8 @@ public class Rendering {
         Vec3 camPos = camera.position();
 
         PoseStack pose = new PoseStack();
-        pose.mulPose(Axis.XP.rotationDegrees(camera.xRot()));
-        pose.mulPose(Axis.YP.rotationDegrees(camera.yRot() - 180f));
+        mulPose(pose, Axis.XP.rotationDegrees(camera.xRot()));
+        mulPose(pose, Axis.YP.rotationDegrees(camera.yRot() - 180f));
 
         VertexConsumer consumer = drawCollector.getBuffer(DEBUG_QUADS_NO_DEPTH);
 
@@ -458,7 +478,7 @@ public class Rendering {
         pose.popPose();
     }
 
-    private static final class DrawCollector {
+    public static final class DrawCollector {
         private final List<StagedVertexBuffer.Draw> draws = new ArrayList<>();
         private final List<PreparedRenderType> preparedRenderTypes = new ArrayList<>();
         @Nullable private RenderType lastRenderType;
@@ -482,13 +502,22 @@ public class Rendering {
             return draw;
         }
 
-        private void draw() {
+        private void upload() {
             STAGED_BUFFER.upload();
+        }
 
+        public boolean hasDraws() {
+            return !draws.isEmpty();
+        }
+
+        /**
+         * Draws the collected geometry. Only {@code drawFromBuffer} is allowed in here, no uploads.
+         */
+        public void draw(RenderPass renderPass) {
             for (int i = 0; i < draws.size(); i++) {
                 StagedVertexBuffer.ExecuteInfo executeInfo = STAGED_BUFFER.getExecuteInfo(draws.get(i));
                 if (executeInfo != null) {
-                    preparedRenderTypes.get(i).drawFromBuffer(executeInfo);
+                    preparedRenderTypes.get(i).drawFromBuffer(executeInfo, renderPass);
                 }
             }
         }
