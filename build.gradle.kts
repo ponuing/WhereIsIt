@@ -37,7 +37,6 @@ if (System.getenv().containsKey("NEW_TAG")) {
 }
 
 repositories {
-    mavenLocal()
     // Parchment Mappings
     maven {
         name = "ParchmentMC"
