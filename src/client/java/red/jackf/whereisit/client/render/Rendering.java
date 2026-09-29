@@ -190,6 +190,9 @@ public class Rendering {
         if (disableOwnContainerNameLabelsWhenChestTrackerLoaded()) {
             namedResults.clear();
         }
+        if (Minecraft.getInstance().gui.hud.isHidden()) {
+            return;
+        }
 
         if (shouldBeRendering()
                 && WhereIsItConfig.INSTANCE.instance().getClient().showContainerNamesInResults
